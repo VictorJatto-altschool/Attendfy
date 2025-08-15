@@ -186,8 +186,11 @@ function applyStudentProfileLockUI() {
 // Initializes Firebase (if enabled via config.js), enables offline persistence, sets Firestore handle
 async function initCloud() {
   try {
-    const cfg = window.firebaseConfig || { enabled: true }
-    if (!cfg.enabled) return
+    const cfg = window.firebaseConfig || { enabled: false }
+    if (!cfg.enabled) {
+      console.log("Cloud sync: disabled (no config or explicitly disabled)")
+      return
+    }
     if (typeof firebase === "undefined") {
       console.warn("Firebase SDK not loaded; running in local-only mode")
       return
