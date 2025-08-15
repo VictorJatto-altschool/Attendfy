@@ -32,16 +32,6 @@
       defer
       src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"
     ></script>
-  <!-- Load runtime config (not committed): create config.js with window.firebaseConfig = { ... } -->
-  <script src="config.js"></script>
-  <script>
-    // Lightweight visibility: show whether config is present
-    (function(){
-      if (!window.firebaseConfig) {
-        console.warn('firebaseConfig missing; cloud will be disabled');
-      }
-    })();
-  </script>
   </head>
   <body>
     <!-- Preloader Overlay -->
@@ -514,6 +504,8 @@
       </div>
     </div>
 
+  <!-- Load runtime config before app script so window.firebaseConfig is ready -->
+  <script src="config.js"></script>
   <script src="script.js"></script>
   </body>
 </html>
