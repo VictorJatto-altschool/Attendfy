@@ -25,7 +25,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    steps:
+  steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -66,10 +66,16 @@ jobs:
             EOF
           fi
 
-    - name: Upload artifact
+      - name: Sanity check config.js
+        shell: bash
+        run: |
+          test -f config.js || { echo "config.js missing"; exit 1; }
+          grep -q "window.firebaseConfig" config.js || { echo "config.js malformed"; echo "---"; cat config.js; exit 1; }
+
+      - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-      path: ./
+          path: ./
           name: github-pages
 
       - name: Deploy to GitHub Pages
