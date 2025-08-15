@@ -1061,13 +1061,22 @@ async function verifyRepAccess() {
           // Optional: sign out immediately to avoid holding an auth session
           try { await firebase.auth().signOut() } catch (_) {}
         }
-      } catch (_) {
-        // ignore; will fall back to error below
+      } catch (e) {
+        // Keep unauthenticated; attach hint based on Firebase error code
+        let hint = ''
+        const code = e && e.code ? String(e.code) : ''
+        if (code === 'auth/operation-not-allowed') hint = ' Email/Password sign-in is disabled in Firebase Auth.'
+        else if (code === 'auth/user-not-found') hint = ' No user found for this email.'
+        else if (code === 'auth/wrong-password') hint = ' Incorrect password.'
+        else if (code === 'auth/too-many-requests') hint = ' Too many attempts, please try again later.'
+        if (hint) console.warn('Auth failed:', code, hint)
       }
     }
 
     if (!authenticated) {
-      showAlert("Invalid PIN or password.")
+      const cfg = window.firebaseConfig || { enabled: false }
+      const cloudNote = cfg && cfg.enabled === false ? " Cloud auth is disabled on this site; only the Rep PIN can be used unless the admin enables Firebase secrets." : ""
+      showAlert("Invalid PIN or password." + cloudNote)
       return
     }
 
