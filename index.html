@@ -165,7 +165,6 @@
             type="button"
             class="btn btn-secondary hidden"
             id="manual-btn"
-            onclick="handleManualAttendance()"
           >
             <i class="bi bi-pen-fill"></i>  Manual Attendance
           </button>
@@ -231,7 +230,7 @@
 
         <div id="rep-dashboard" class="hidden">
           <h3><i class="bi bi-bar-chart-line-fill"></i> Course Rep Dashboard</h3>
-          <button id="rep-signout-btn" class="btn btn-secondary btn-small" onclick="repSignOut()" style="float:right; margin-top:-48px;"> <i class="bi bi-box-arrow-right"></i> Sign out</button>
+          <button id="rep-signout-btn" class="btn btn-secondary btn-small" style="float:right; margin-top:-48px;"> <i class="bi bi-box-arrow-right"></i> Sign out</button>
 
           <div class="dashboard-section">
             <h4><i class="bi bi-person-badge" style="color: lightgreen"></i> Rep Profile & Scope</h4>
@@ -391,8 +390,8 @@
                 </button>
                 <button
                   type="button"
+                  id="use-current-location-btn"
                   class="btn btn-secondary"
-                  onclick="getCurrentLocation()"
                 >
                   <i class="bi bi-geo-alt-fill" style="color: rgb(245, 248, 245)"></i> Use Current Location
                 </button>
@@ -403,7 +402,7 @@
           <div class="dashboard-section">
             <h4><i class="bi bi-pencil-square" style="color: lightgreen"></i> Manage Timetable</h4>
             <div class="button-group" style="margin-bottom:10px;">
-              <button class="btn btn-danger btn-small" onclick="clearAllTimetables()">
+              <button id="clear-timetables-btn" class="btn btn-danger btn-small">
                 <i class="bi bi-exclamation-triangle-fill"></i> Clear All Timetables
               </button>
             </div>
@@ -427,13 +426,13 @@
                 </select>
               </div>
               <div class="button-group">
-                <button class="btn btn-primary" onclick="generateSummary()">
+                <button id="generate-summary-btn" class="btn btn-primary">
                   <i class="bi bi-file-earmark-word-fill"></i> Generate Summary
                 </button>
-                <button id="download-summary-btn" class="btn btn-success" onclick="downloadSummary()">
+                <button id="download-summary-btn" class="btn btn-success">
                   <i class="bi bi-file-earmark-arrow-down-fill"></i> Download
                 </button>
-                <button id="print-summary-btn" class="btn btn-secondary" onclick="printSummary()">
+                <button id="print-summary-btn" class="btn btn-secondary">
                   <i class="bi bi-printer-fill"></i> Print
                 </button>
               </div>
@@ -458,7 +457,6 @@
             <button
               id="clear-filters-btn"
               class="btn btn-secondary btn-small"
-              onclick="clearFilters()"
             >
               <i class="bi bi-x-circle"></i> Clear Filters
             </button>
@@ -467,7 +465,7 @@
           <div class="filter-grid">
             <div class="form-group">
               <label for="filter-faculty">Faculty</label>
-              <select id="filter-faculty" onchange="filterTimetable()">
+              <select id="filter-faculty">
                 <option value="">All Faculties</option>
                 <option value="Science">Science</option>
                 <option value="Arts">Arts</option>
@@ -484,13 +482,12 @@
                 type="text"
                 id="filter-department"
                 placeholder="Enter department"
-                oninput="filterTimetable()"
               />
             </div>
 
             <div class="form-group">
               <label for="filter-level">Level</label>
-              <select id="filter-level" onchange="filterTimetable()">
+              <select id="filter-level">
                 <option value="">All Levels</option>
                 <option value="100">100 Level</option>
                 <option value="200">200 Level</option>

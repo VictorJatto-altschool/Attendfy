@@ -394,6 +394,17 @@ function setupEventListeners() {
   if (retryGPSBtn) {
     retryGPSBtn.addEventListener("click", retryGetLocation)
   }
+  // Use current location for timetable GPS fields
+  const useCurrentBtn = document.getElementById("use-current-location-btn")
+  if (useCurrentBtn) {
+    useCurrentBtn.addEventListener("click", getCurrentLocation)
+  }
+
+  // Manual attendance button
+  const manualBtn = document.getElementById("manual-btn")
+  if (manualBtn) {
+    manualBtn.addEventListener("click", handleManualAttendance)
+  }
 
   // Rep login form to enable browser password manager saving
   const repLoginForm = document.getElementById("rep-login-form")
@@ -426,6 +437,32 @@ function setupEventListeners() {
   }
   if (summaryDateEl) summaryDateEl.addEventListener("change", resetSummaryState)
   if (summaryCourseEl) summaryCourseEl.addEventListener("change", resetSummaryState)
+
+  // Bind summary action buttons
+  const genBtn = document.getElementById("generate-summary-btn")
+  if (genBtn) genBtn.addEventListener("click", generateSummary)
+  const dl = document.getElementById("download-summary-btn")
+  if (dl) dl.addEventListener("click", downloadSummary)
+  const pr = document.getElementById("print-summary-btn")
+  if (pr) pr.addEventListener("click", printSummary)
+
+  // Clear filters and filter selects
+  const clearFiltersBtn2 = document.getElementById("clear-filters-btn")
+  if (clearFiltersBtn2) clearFiltersBtn2.addEventListener("click", clearFilters)
+  const ff = document.getElementById("filter-faculty")
+  const fd = document.getElementById("filter-department")
+  const fl = document.getElementById("filter-level")
+  if (ff) ff.addEventListener("change", filterTimetable)
+  if (fd) fd.addEventListener("input", filterTimetable)
+  if (fl) fl.addEventListener("change", filterTimetable)
+
+  // Clear all timetables button
+  const clearAllBtn = document.getElementById("clear-timetables-btn")
+  if (clearAllBtn) clearAllBtn.addEventListener("click", clearAllTimetables)
+
+  // Rep signout
+  const repSignoutBtn = document.getElementById("rep-signout-btn")
+  if (repSignoutBtn) repSignoutBtn.addEventListener("click", repSignOut)
 }
 
 // Wire up nav buttons using class and data-section (no inline handlers)
