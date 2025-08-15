@@ -1027,25 +1027,58 @@ function createAttendanceRecord(formData, courseInfo, distance) {
 }
 
 // Course Rep functions
-// Verifies rep email using either stored PIN (Firestore repPins) or Firebase Auth password; then saves session, loads scope, nudges password manager, and shows dashboard
+// Verifies (or bypasses) Course Rep access.
+// When appConfig.repAuthOptional is true (default), allow opening the dashboard without PIN/password.
+// Otherwise, require either a matching rep PIN (from Firestore/local) or Firebase Auth password.
 async function verifyRepAccess() {
-  const email = document.getElementById("rep-email").value.trim().toLowerCase()
+  let email = document.getElementById("rep-email").value.trim().toLowerCase()
   const pin = document.getElementById("rep-pin")?.value?.trim()
   const dashboard = document.getElementById("rep-dashboard")
+  const appCfg = (typeof window !== 'undefined' && window.appConfig) ? window.appConfig : {}
+  const authOptional = appCfg && Object.prototype.hasOwnProperty.call(appCfg, 'repAuthOptional') ? !!appCfg.repAuthOptional : true
+  const allowAnyEmail = appCfg && Object.prototype.hasOwnProperty.call(appCfg, 'allowAnyRepEmail') ? !!appCfg.allowAnyRepEmail : true
+
+  // If authentication is optional, allow opening dashboard with or without email/PIN
+  if (authOptional) {
+    if (!email) {
+      // Provide a stable pseudo-identity for local storage scoping
+      email = 'guest@local'
+    } else {
+      // Best-effort email normalization; accept any email string
+      email = String(email).toLowerCase()
+    }
+    // Persist session and reveal dashboard
+    localStorage.setItem("repSession", JSON.stringify({ email, ts: Date.now(), mode: 'open' }))
+    currentRepEmail = email
+    loadRepScope()
+    applyRepScopeUI()
+    ensureUnlockButton()
+    renderRepTimetableList()
+    if (dashboard) {
+      dashboard.classList.remove("hidden")
+      const msg = document.createElement("div")
+      msg.className = "alert alert-success"
+      msg.innerHTML = '<i class="bi bi-unlock" style="color: lightgreen;"></i> Course Rep dashboard opened (no verification required).'
+      dashboard.insertBefore(msg, dashboard.firstChild)
+      setTimeout(() => { if (msg.parentNode) msg.parentNode.removeChild(msg) }, 3000)
+      dashboard.scrollIntoView({ behavior: "smooth" })
+    }
+    return
+  }
 
   if (!email) {
     showAlert("Please enter your email address.")
     return
   }
 
-  // Simple email validation
+  // Simple email validation (when auth is required)
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email)) {
     showAlert("Please enter a valid email address.")
     return
   }
 
-  if (authorizedReps.includes(email)) {
+  if (allowAnyEmail || authorizedReps.includes(email)) {
     // Accept either matching repPins PIN or Firebase Auth password as credentials
     const expectedPin = repPins[email]
     let authenticated = false
