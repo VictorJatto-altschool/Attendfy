@@ -7,7 +7,7 @@ let db = null
 let studentProfile = null
 const authorizedReps = ["jattovictor32@gmail.com", "courserep@university.edu"]
 // Simple 2FA: email -> PIN mapping (loaded from local storage or Firestore; no defaults in code)
-let repPins = JSON.parse(localStorage.getItem("repPins") || "{}")
+let repPins = normalizeRepPins(JSON.parse(localStorage.getItem("repPins") || "{}"))
 let gpsFailureCount = 0
 // Rep session & scope
 let currentRepEmail = null
@@ -256,7 +256,8 @@ async function loadFromCloudIfAny() {
       if (pSnap.exists) {
         const pins = pSnap.data() || {}
         if (pins && typeof pins === "object") {
-          repPins = { ...repPins, ...pins }
+          const normalized = normalizeRepPins(pins)
+          repPins = { ...repPins, ...normalized }
           localStorage.setItem("repPins", JSON.stringify(repPins))
         }
       }
@@ -289,7 +290,8 @@ function subscribeCloud() {
       if (!snap.exists) return
       const remote = snap.data() || {}
       if (remote && typeof remote === "object") {
-        repPins = { ...repPins, ...remote }
+        const normalized = normalizeRepPins(remote)
+        repPins = { ...repPins, ...normalized }
         localStorage.setItem("repPins", JSON.stringify(repPins))
       }
     })
@@ -1951,4 +1953,28 @@ function escapeHtml(s) {
     .replace(/>/g, '&gt;')
     .replace(/\"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+// Normalizes the repPins map so email keys are lowercase and values are trimmed strings
+// Input: an object mapping email -> pin (string/number). Output: clean object with lowercase emails and string PINs.
+function normalizeRepPins(pins) {
+  try {
+    const out = {}
+    if (!pins || typeof pins !== 'object') return out
+    for (const key of Object.keys(pins)) {
+      const email = String(key || '').trim().toLowerCase()
+      if (!email) continue
+      const raw = pins[key]
+      // Only accept primitive string/number pins; ignore nested objects/arrays/null
+      if (raw === undefined || raw === null) continue
+      const type = typeof raw
+      if (type === 'string' || type === 'number' || type === 'boolean') {
+        const pin = String(raw).trim()
+        if (pin) out[email] = pin
+      }
+    }
+    return out
+  } catch (_) {
+    return {}
+  }
 }
