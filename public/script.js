@@ -6,20 +6,8 @@ let db = null
 // Anti-cheat: bind this device to a single student for today
 let studentProfile = null
 const authorizedReps = ["jattovictor32@gmail.com", "courserep@university.edu"]
-// Simple 2FA: email -> PIN mapping (can be moved to Firestore or env)
-// Use an IIFE to merge defaults with stored values and ensure specific overrides.
-const repPins = (() => {
-  const stored = JSON.parse(localStorage.getItem("repPins") || "null") || {}
-  const defaults = {
-    "jattovictor32@gmail.com": "cyB200@", // updated per request
-    "courserep@university.edu": "1357",
-  }
-  const merged = { ...defaults, ...stored }
-  // Force override requested PIN to guarantee access now
-  merged["jattovictor32@gmail.com"] = "cyB200@"
-  localStorage.setItem("repPins", JSON.stringify(merged))
-  return merged
-})()
+// Simple 2FA: email -> PIN mapping (loaded from local storage or Firestore; no defaults in code)
+let repPins = JSON.parse(localStorage.getItem("repPins") || "{}")
 let gpsFailureCount = 0
 // Rep session & scope
 let currentRepEmail = null
@@ -245,6 +233,17 @@ async function loadFromCloudIfAny() {
       // mutate attendanceData array in place to keep references
       attendanceData.splice(0, attendanceData.length, ...merged)
     }
+    // Load repPins securely from Firestore
+    try {
+      const pSnap = await db.collection("attendanceApp").doc("repPins").get()
+      if (pSnap.exists) {
+        const pins = pSnap.data() || {}
+        if (pins && typeof pins === "object") {
+          repPins = { ...repPins, ...pins }
+          localStorage.setItem("repPins", JSON.stringify(repPins))
+        }
+      }
+    } catch (_) {}
   } catch (e) {
     console.warn("Cloud load failed; using local data", e)
   }
@@ -266,6 +265,15 @@ function subscribeCloud() {
       const remote = Array.isArray(snap.data().items) ? snap.data().items : []
       localStorage.setItem("attendanceData", JSON.stringify(remote))
       attendanceData.splice(0, attendanceData.length, ...remote)
+    })
+    // Listen for repPins (email -> pin) updates
+    db.collection("attendanceApp").doc("repPins").onSnapshot((snap) => {
+      if (!snap.exists) return
+      const remote = snap.data() || {}
+      if (remote && typeof remote === "object") {
+        repPins = { ...repPins, ...remote }
+        localStorage.setItem("repPins", JSON.stringify(repPins))
+      }
     })
   } catch (e) {
     console.warn("Cloud subscribe failed", e)
