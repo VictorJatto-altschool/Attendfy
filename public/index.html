@@ -23,7 +23,7 @@
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     />
-    <!-- Optional: Firebase for multi-device sync. Leave as-is to stay local-only. -->
+  <!-- Optional: Firebase for multi-device sync. Leave as-is to stay local-only. -->
     <script
       defer
       src="https://www.gstatic.com/firebasejs/9.6.11/firebase-app-compat.js"
@@ -32,18 +32,8 @@
       defer
       src="https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore-compat.js"
     ></script>
-    <script>
-      // To enable shared data across devices, fill in your Firebase config below and set enabled: true
-      window.firebaseConfig = {
-  enabled: true,
-  apiKey: "AIzaSyC787YhYTxzs950ny9PFMHW6EPdAymi2fk",
-  authDomain: "attendance-b36c9.firebaseapp.com",
-  projectId: "attendance-b36c9",
-  storageBucket: "attendance-b36c9.firebasestorage.app",
-  messagingSenderId: "415536927636",
-  appId: "1:415536927636:web:9782401666be5215fbb581",
-      };
-    </script>
+  <!-- Load runtime config (not committed): create public/config.js with window.firebaseConfig = { ... } -->
+  <script src="config.js"></script>
   </head>
   <body>
     <!-- Preloader Overlay -->
@@ -510,6 +500,6 @@
       </div>
     </div>
 
-    <script src="script.js"></script>
+  <script src="script.js"></script>
   </body>
 </html>
