@@ -388,7 +388,7 @@ function setupEventListeners() {
 }
 
 // Navigation functions
-function showSection(sectionId) {
+function showSection(sectionId, ev) {
   // Hide all sections with smooth transition
   document.querySelectorAll(".section").forEach((section) => {
     section.classList.remove("active")
@@ -405,7 +405,9 @@ function showSection(sectionId) {
   }, 100)
 
   // Add active class to clicked button
-  event.target.classList.add("active")
+  if (ev && ev.target && ev.target.classList) {
+    ev.target.classList.add("active")
+  }
 }
 
 // GPS Location functions
@@ -1394,6 +1396,20 @@ function validateTimetableData(data) {
       }
     }
   }
+  // Validate day field is from allowed list
+  const validDays = ["Monday","Tuesday","Wednesday","Thursday","Friday"]
+  if (!validDays.includes(String(data.day))) {
+    return { isValid: false, message: "Please select a valid day." }
+  }
+  // Validate time slot format
+  const timeRe = /^\s*\d{1,2}:\d{2}\s*(AM|PM)\s*-\s*\d{1,2}:\d{2}\s*(AM|PM)\s*$/i
+  if (!timeRe.test(String(data.timeSlot || ""))) {
+    return { isValid: false, message: "Time Slot must look like: 8:00 AM - 10:00 AM" }
+  }
+  // Validate GPS coordinates
+  if (!Number.isFinite(data.gpsLat) || !Number.isFinite(data.gpsLng)) {
+    return { isValid: false, message: "Please provide valid GPS coordinates." }
+  }
   return { isValid: true }
 }
 
@@ -1441,7 +1457,7 @@ function generateSummaryHTML(dayAttendance, dateObj) {
     const courseAttendance = groupedByCourse[courseCode]
   summaryHTML += `
       <div class="attendance-item" style="background: #f8fffe; font-weight: bold; border-left: 4px solid #4CAF50;">
-        <div><i class=\"bi bi-book\" style=\"color: lightgreen;\"></i> ${courseCode} - ${courseAttendance.length} students</div>
+    <div><i class=\"bi bi-book\" style=\"color: lightgreen;\"></i> ${escapeHtml(String(courseCode))} - ${courseAttendance.length} students</div>
       </div>
     `
 
@@ -1450,10 +1466,10 @@ function generateSummaryHTML(dayAttendance, dateObj) {
       summaryHTML += `
                 <div class="attendance-item">
                     <div class="student-info">
-                        <div class="student-name">${record.studentName}</div>
+            <div class="student-name">${escapeHtml(String(record.studentName))}</div>
                         <div class="student-details">
-                            ${record.matriculation} | ${record.department} | ${record.level} Level
-            <br><i class=\"bi bi-geo-alt\" style=\"color: lightgreen;\"></i> Venue: ${record.venue} | <i class=\"bi bi-arrow-left-right\" style=\"color: lightgreen;\"></i> Distance: ${distanceText}
+              ${escapeHtml(String(record.matriculation))} | ${escapeHtml(String(record.department))} | ${escapeHtml(String(record.level))} Level
+      <br><i class=\"bi bi-geo-alt\" style=\"color: lightgreen;\"></i> Venue: ${escapeHtml(String(record.venue))} | <i class=\"bi bi-arrow-left-right\" style=\"color: lightgreen;\"></i> Distance: ${distanceText}
                         </div>
                     </div>
                     <div class="timestamp">${new Date(record.timestamp).toLocaleTimeString()}</div>
@@ -1558,15 +1574,15 @@ function generateTimetableHTML() {
         .forEach((item) => {
           timetableHTML += `
             <div class="timetable-entry">
-              <div class="course-title">${item.courseCode}</div>
+              <div class="course-title">${escapeHtml(String(item.courseCode))}</div>
               <div class="course-details">
-                <i class="bi bi-clock" style="color: lightgreen;"></i> ${item.timeSlot}<br>
-                <i class="bi bi-geo-alt" style="color: lightgreen;"></i> ${item.venue}<br>
-                <i class="bi bi-buildings" style="color: lightgreen;"></i> ${item.faculty} - ${item.department}<br>
-                <i class="bi bi-mortarboard" style="color: lightgreen;"></i> ${item.level} Level
+                <i class="bi bi-clock" style="color: lightgreen;"></i> ${escapeHtml(String(item.timeSlot))}<br>
+                <i class="bi bi-geo-alt" style="color: lightgreen;"></i> ${escapeHtml(String(item.venue))}<br>
+                <i class="bi bi-buildings" style="color: lightgreen;"></i> ${escapeHtml(String(item.faculty))} - ${escapeHtml(String(item.department))}<br>
+                <i class="bi bi-mortarboard" style="color: lightgreen;"></i> ${escapeHtml(String(item.level))} Level
                 <div class="gps-coordinates">
                   <strong><i class="bi bi-geo"></i> GPS Location:</strong><br>
-                  Lat: ${item.gpsLat.toFixed(6)}, Lng: ${item.gpsLng.toFixed(6)}
+                  Lat: ${Number(item.gpsLat).toFixed(6)}, Lng: ${Number(item.gpsLng).toFixed(6)}
                 </div>
               </div>
             </div>
@@ -1630,7 +1646,7 @@ function clearFilters() {
 function showMessage(container, message, type) {
   if (!container) return
 
-  container.innerHTML = `<div class="alert alert-${type}">${message}</div>`
+  container.innerHTML = `<div class="alert alert-${escapeHtml(String(type))}">${message}</div>`
 
   // Scroll message into view
   container.scrollIntoView({ behavior: "smooth", block: "nearest" })
@@ -1747,3 +1763,13 @@ document.addEventListener("keydown", (e) => {
     }
   }
 })
+
+// Basic HTML escape to protect dynamic content
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}

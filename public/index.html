@@ -64,13 +64,13 @@
       </div>
 
       <div class="main-nav">
-        <button class="nav-btn active" onclick="showSection('student-checkin')">
+        <button class="nav-btn active" onclick="showSection('student-checkin', event)">
           Student Check-in
         </button>
-        <button class="nav-btn" onclick="showSection('course-rep')">
+        <button class="nav-btn" onclick="showSection('course-rep', event)">
           Course Rep Access
         </button>
-        <button class="nav-btn" onclick="showSection('view-timetable')">
+        <button class="nav-btn" onclick="showSection('view-timetable', event)">
           View Timetable
         </button>
       </div>
@@ -291,7 +291,7 @@
                     <option value="Engineering">Engineering</option>
                     <option value="Medicine">Medicine</option>
                     <option value="Law">Law</option>
-                    <option value="Law">Computing</option>
+                    <option value="Computing">Computing</option>
                   </select>
                 </div>
 
@@ -456,6 +456,7 @@
           <div class="filter-header">
             <h4><i class="bi bi-search"></i> Filter Timetable</h4>
             <button
+              id="clear-filters-btn"
               class="btn btn-secondary btn-small"
               onclick="clearFilters()"
             >
@@ -473,7 +474,7 @@
                 <option value="Engineering">Engineering</option>
                 <option value="Medicine">Medicine</option>
                 <option value="Law">Law</option>
-                <option value="Law">Computing</option>
+                <option value="Computing">Computing</option>
               </select>
             </div>
 
