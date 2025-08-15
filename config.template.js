@@ -2,7 +2,7 @@
 // IMPORTANT: config.js is ignored by git. For production, the GitHub Actions workflow
 // generates config.js at the repository root from encrypted repository secrets at deploy time.
 window.firebaseConfig = {
-  enabled: false, // set to true only in your local untracked public/config.js
+  enabled: false, // set to true only in your local untracked config.js
   apiKey: "REPLACE",
   authDomain: "REPLACE",
   projectId: "REPLACE",

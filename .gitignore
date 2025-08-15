@@ -12,7 +12,7 @@ pnpm-debug.log*
 # Env and secrets
 .env
 .env.*
-public/config.js
+config.js
 
 # Editors / OS
 .vscode/

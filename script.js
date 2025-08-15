@@ -43,6 +43,11 @@ function initializeApp() {
   // Add form and nav event listeners
   setupEventListeners()
   setupNavHandlers()
+  // Disable summary actions until a summary is generated
+  const __dl = document.getElementById("download-summary-btn")
+  const __pr = document.getElementById("print-summary-btn")
+  if (__dl) __dl.disabled = true
+  if (__pr) __pr.disabled = true
 
   console.log("  <i class=\"bi bi-patch-check-fill\"></i> Attendance system initialized successfully")
   // Mark app as ready for preloader; lifecycle will hide after minimum display time
@@ -386,6 +391,20 @@ function setupEventListeners() {
       handleSaveRepScope()
     })
   }
+
+  // Summary controls: clear summary and disable actions on input change
+  const summaryDateEl = document.getElementById("summary-date")
+  const summaryCourseEl = document.getElementById("summary-course")
+  const summaryDiv = document.getElementById("attendance-summary")
+  const dlBtn = document.getElementById("download-summary-btn")
+  const prBtn = document.getElementById("print-summary-btn")
+  const resetSummaryState = () => {
+    if (summaryDiv) summaryDiv.innerHTML = ""
+    if (dlBtn) dlBtn.disabled = true
+    if (prBtn) prBtn.disabled = true
+  }
+  if (summaryDateEl) summaryDateEl.addEventListener("change", resetSummaryState)
+  if (summaryCourseEl) summaryCourseEl.addEventListener("change", resetSummaryState)
 }
 
 // Wire up nav buttons using class and data-section (no inline handlers)
@@ -646,17 +665,32 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 // Student check-in functions
 function loadTimetableOptions() {
   const courseSelect = document.getElementById("course-select")
-  if (!courseSelect) return
-
-  courseSelect.innerHTML = '<option value="">Choose a course...</option>'
+  const summaryCourse = document.getElementById("summary-course")
+  if (!courseSelect && !summaryCourse) return
 
   const uniqueCourses = [...new Set(timetableData.map((item) => item.courseCode))]
-  uniqueCourses.forEach((course) => {
-    const option = document.createElement("option")
-    option.value = course
-    option.textContent = course
-    courseSelect.appendChild(option)
-  })
+
+  if (courseSelect) {
+    courseSelect.innerHTML = '<option value="">Choose a course...</option>'
+    uniqueCourses.forEach((course) => {
+      const option = document.createElement("option")
+      option.value = course
+      option.textContent = course
+      courseSelect.appendChild(option)
+    })
+  }
+
+  if (summaryCourse) {
+    const prev = summaryCourse.value
+    summaryCourse.innerHTML = '<option value="">All Courses</option>'
+    uniqueCourses.forEach((course) => {
+      const opt = document.createElement("option")
+      opt.value = course
+      opt.textContent = course
+      summaryCourse.appendChild(opt)
+    })
+    if (prev && uniqueCourses.includes(prev)) summaryCourse.value = prev
+  }
 }
 
 function handleStudentCheckin(e) {
@@ -1440,19 +1474,33 @@ function generateSummary() {
   const summaryDiv = document.getElementById("attendance-summary")
   const dateObj = new Date(selectedDate)
   const dateString = dateObj.toDateString()
+  const courseSel = document.getElementById("summary-course")
+  const selectedCourse = courseSel ? courseSel.value.trim() : ""
 
-  const dayAttendance = attendanceData.filter((record) => new Date(record.timestamp).toDateString() === dateString)
+  let dayAttendance = attendanceData.filter((record) => new Date(record.timestamp).toDateString() === dateString)
+  if (selectedCourse) {
+    dayAttendance = dayAttendance.filter((r) => String(r.courseCode) === selectedCourse)
+  }
 
   if (dayAttendance.length === 0) {
-    summaryDiv.innerHTML = '<div class="alert alert-warning">No attendance records found for the selected date.</div>'
+    summaryDiv.innerHTML = '<div class="alert alert-warning">No attendance was recorded for the course.</div>'
+    const dl = document.getElementById("download-summary-btn")
+    const pr = document.getElementById("print-summary-btn")
+    if (dl) dl.disabled = true
+    if (pr) pr.disabled = true
     return
   }
 
-  const summaryHTML = generateSummaryHTML(dayAttendance, dateObj)
+  const summaryHTML = generateSummaryHTML(dayAttendance, dateObj, selectedCourse)
   summaryDiv.innerHTML = summaryHTML
+  const dl = document.getElementById("download-summary-btn")
+  const pr = document.getElementById("print-summary-btn")
+  if (dl) dl.disabled = false
+  if (pr) pr.disabled = false
+  summaryDiv.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
-function generateSummaryHTML(dayAttendance, dateObj) {
+function generateSummaryHTML(dayAttendance, dateObj, selectedCourse) {
   // Group by course
   const groupedByCourse = dayAttendance.reduce((acc, record) => {
     if (!acc[record.courseCode]) {
@@ -1462,9 +1510,10 @@ function generateSummaryHTML(dayAttendance, dateObj) {
     return acc
   }, {})
 
+  const courseLabel = selectedCourse ? ` - ${escapeHtml(String(selectedCourse))}` : ''
   let summaryHTML = `
         <div class="print-only">
-            <h2>Daily Attendance Summary - ${dateObj.toLocaleDateString()}</h2>
+            <h2>Daily Attendance Summary - ${dateObj.toLocaleDateString()}${courseLabel}</h2>
             <p>Generated on: ${new Date().toLocaleString()}</p>
         </div>
         <div class="attendance-list">
@@ -1502,18 +1551,19 @@ function generateSummaryHTML(dayAttendance, dateObj) {
 function downloadSummary() {
   const summaryDiv = document.getElementById("attendance-summary")
   if (!summaryDiv.innerHTML.trim()) {
-    showAlert("Please generate a summary first.")
+  showAlert("No attendance was recorded for the course.")
     return
   }
 
   const selectedDate = document.getElementById("summary-date").value
+  const selectedCourse = (document.getElementById("summary-course")?.value || '').trim()
   const content = summaryDiv.innerHTML
 
   const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Attendance Summary - ${selectedDate}</title>
+            <title>Attendance Summary - ${selectedDate}${selectedCourse ? ` - ${selectedCourse}` : ''}</title>
             <style>
                 body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
                 .attendance-list { border: 1px solid #ccc; border-radius: 8px; }
@@ -1535,7 +1585,7 @@ function downloadSummary() {
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url
-  a.download = `attendance-summary-${selectedDate}.html`
+  a.download = `attendance-summary-${selectedDate}${selectedCourse ? '-' + selectedCourse.replace(/\s+/g, '_') : ''}.html`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -1543,7 +1593,7 @@ function downloadSummary() {
 function printSummary() {
   const summaryDiv = document.getElementById("attendance-summary")
   if (!summaryDiv.innerHTML.trim()) {
-    showAlert("Please generate a summary first.")
+  showAlert("No attendance was recorded for the course.")
     return
   }
 
