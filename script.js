@@ -188,7 +188,7 @@ async function initCloud() {
   try {
     const cfg = window.firebaseConfig || { enabled: false }
     if (!cfg.enabled) {
-      console.log("Cloud sync: disabled (no config or explicitly disabled)")
+      console.log("Cloud sync: disabled (config present: " + (typeof window.firebaseConfig !== 'undefined') + ")")
       return
     }
     if (typeof firebase === "undefined") {
