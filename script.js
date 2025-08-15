@@ -1027,8 +1027,8 @@ function createAttendanceRecord(formData, courseInfo, distance) {
 }
 
 // Course Rep functions
-// Verifies rep email + PIN, saves session, loads scope, nudges password manager, and shows dashboard
-function verifyRepAccess() {
+// Verifies rep email using either stored PIN (Firestore repPins) or Firebase Auth password; then saves session, loads scope, nudges password manager, and shows dashboard
+async function verifyRepAccess() {
   const email = document.getElementById("rep-email").value.trim().toLowerCase()
   const pin = document.getElementById("rep-pin")?.value?.trim()
   const dashboard = document.getElementById("rep-dashboard")
@@ -1046,14 +1046,28 @@ function verifyRepAccess() {
   }
 
   if (authorizedReps.includes(email)) {
-    // Require PIN
+    // Accept either matching repPins PIN or Firebase Auth password as credentials
     const expectedPin = repPins[email]
-    if (!expectedPin) {
-      showAlert("PIN not set for this email. Contact admin.")
-      return
+    let authenticated = false
+    if (expectedPin && pin && pin === expectedPin) {
+      authenticated = true
+    } else {
+      // Try Firebase Auth if available and configured
+      try {
+        const cfg = window.firebaseConfig || { enabled: false }
+        if (cfg.enabled && typeof firebase !== "undefined" && firebase.apps && firebase.apps.length > 0 && firebase.auth) {
+          await firebase.auth().signInWithEmailAndPassword(email, pin)
+          authenticated = true
+          // Optional: sign out immediately to avoid holding an auth session
+          try { await firebase.auth().signOut() } catch (_) {}
+        }
+      } catch (_) {
+        // ignore; will fall back to error below
+      }
     }
-    if (!pin || pin !== expectedPin) {
-      showAlert("Invalid PIN.")
+
+    if (!authenticated) {
+      showAlert("Invalid PIN or password.")
       return
     }
 
@@ -1068,7 +1082,7 @@ function verifyRepAccess() {
   attemptSaveRepCredentials(email, pin)
   // Fallback heuristic: submit a hidden shadow form to a hidden iframe so browsers detect a successful login
   triggerPasswordManagerHeuristic(email, pin)
-    dashboard.classList.remove("hidden")
+  dashboard.classList.remove("hidden")
 
     // Create success message
     const messageDiv = document.createElement("div")
