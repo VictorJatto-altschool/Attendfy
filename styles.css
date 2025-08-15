@@ -404,6 +404,15 @@ select:focus {
   box-shadow: 0 8px 25px rgba(144, 238, 144, 0.6);
 }
 
+/* Base alert style for consistent UI across success/error/warning */
+.alert {
+  padding: 12px 16px;
+  border-left: 4px solid transparent;
+  border-radius: 12px;
+  margin: 10px 0;
+  font-weight: 500;
+}
+
 .alert-success {
   background: #e8f5e9;
   color: #2e7d32;
@@ -871,6 +880,16 @@ select:focus {
   background: #ffffff;
 }
 .status-chip .bi { font-size: 0.95em; }
+
+/* Inline live indicator dot for statuses */
+.live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  background: #2e7d32;
+}
 
 @media print {
   body {

@@ -11,7 +11,7 @@
   <link rel="apple-touch-icon" href="Preloader/20250814_221532.png?v=2" />
   <meta name="theme-color" content="#2e7d32" />
   <!-- Basic Content Security Policy to reduce XSS risk; adjust if you add external hosts -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' https://www.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://firebaseinstallations.googleapis.com; frame-src 'self';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; script-src 'self' https://www.gstatic.com; connect-src 'self' https://firestore.googleapis.com https://www.googleapis.com https://firebaseinstallations.googleapis.com https://www.gstatic.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com; frame-src 'self';" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -34,6 +34,14 @@
     ></script>
   <!-- Load runtime config (not committed): create config.js with window.firebaseConfig = { ... } -->
   <script src="config.js"></script>
+  <script>
+    // Lightweight visibility: show whether config is present
+    (function(){
+      if (!window.firebaseConfig) {
+        console.warn('firebaseConfig missing; cloud will be disabled');
+      }
+    })();
+  </script>
   </head>
   <body>
     <!-- Preloader Overlay -->
