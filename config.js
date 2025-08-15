@@ -17,4 +17,8 @@ window.appConfig = {
   repAuthOptional: true,
   // When auth is required (repAuthOptional: false), allow any email by default (set to false to restrict to authorizedReps list in script.js)
   allowAnyRepEmail: true,
+  // When false (default), students can check in at any time; when true, enforce the course day/time window.
+  enforceTimeWindow: false,
+  // When true (default), allow any free-form time slot text (e.g., "8-10", "9am-11am", "Anytime").
+  allowAnyTimeSlotFormat: true,
 };

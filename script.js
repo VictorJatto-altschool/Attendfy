@@ -700,17 +700,20 @@ function updateCourseSelectionWithDistance() {
 
     // Show time window hint
     if (courseWindowInfo) {
-      const withinWindow = isWithinTimeSlot(courseInfo.timeSlot, courseInfo.day)
+      const cfgTW = (window.appConfig && window.appConfig.enforceTimeWindow) ? true : false
+      const withinWindow = cfgTW ? isWithinTimeSlot(courseInfo.timeSlot, courseInfo.day) : true
       const dayText = courseInfo.day || ""
       courseWindowInfo.innerHTML = withinWindow
-        ? `<i class="bi bi-clock" style="color: lightgreen;"></i> Attendance open: ${dayText} ${courseInfo.timeSlot}`
+        ? `<i class="bi bi-clock" style="color: lightgreen;"></i> Attendance ${(cfgTW ? 'open' : 'allowed')} ${dayText ? dayText + ' ' : ''}${courseInfo.timeSlot || ''}`
         : `<i class="bi bi-hourglass-split" style="color: #ef6c00;"></i> Attendance closed now: ${dayText} ${courseInfo.timeSlot}`
       courseWindowInfo.style.color = withinWindow ? "#4caf50" : "#ef6c00"
     }
 
     // Smart enable/disable
     if (submitBtn) {
-      const canCheckIn = navigator.onLine && currentLocation && distance <= 100 && isWithinTimeSlot(courseInfo.timeSlot, courseInfo.day)
+      const cfgTW = (window.appConfig && window.appConfig.enforceTimeWindow) ? true : false
+      const inWindow = cfgTW ? isWithinTimeSlot(courseInfo.timeSlot, courseInfo.day) : true
+      const canCheckIn = navigator.onLine && currentLocation && distance <= 100 && inWindow
       submitBtn.disabled = !canCheckIn
     }
   })
@@ -841,9 +844,13 @@ function processAttendance(formData) {
   }
 
   // Enforce attendance within time slot and day
-  const withinWindow = isWithinTimeSlot(courseInfo.timeSlot, courseInfo.day)
-  if (!withinWindow) {
-    return { message: "Attendance closed for this course.", type: "error" }
+  const _appCfg = (typeof window !== 'undefined' && window.appConfig) ? window.appConfig : {}
+  const enforceTW = !!_appCfg.enforceTimeWindow
+  if (enforceTW) {
+    const withinWindow = isWithinTimeSlot(courseInfo.timeSlot, courseInfo.day)
+    if (!withinWindow) {
+      return { message: "Attendance closed for this course.", type: "error" }
+    }
   }
 
   // Check distance
@@ -901,6 +908,9 @@ function processAttendance(formData) {
 // True only when now is on the specified weekday and between the parsed start/end times
 function isWithinTimeSlot(timeSlot, day) {
   try {
+    const _appCfg = (typeof window !== 'undefined' && window.appConfig) ? window.appConfig : {}
+    const enforceTW = !!_appCfg.enforceTimeWindow
+    if (!enforceTW) return true // configured to allow any time
     if (!timeSlot || !day) return true // fail-open if missing data
     const [startRaw, endRaw] = timeSlot.split("-").map((s) => s.trim())
     const now = new Date()
@@ -924,12 +934,13 @@ function isWithinTimeSlot(timeSlot, day) {
 function parseTimeToday(label) {
   if (!label) return null
   const now = new Date()
-  const m = label.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i)
+  // Try to parse a variety of common formats, else return null to fail-open in isWithinTimeSlot
+  const m = label.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/i)
   if (!m) return null
   let [_, hh, mm, ap] = m
   let h = parseInt(hh, 10)
-  const minutes = parseInt(mm, 10)
-  ap = ap.toUpperCase()
+  const minutes = isNaN(parseInt(mm, 10)) ? 0 : parseInt(mm, 10)
+  ap = (ap || '').toUpperCase()
   if (ap === "PM" && h !== 12) h += 12
   if (ap === "AM" && h === 12) h = 0
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, minutes, 0, 0)
@@ -1644,10 +1655,14 @@ function validateTimetableData(data) {
   if (!validDays.includes(String(data.day))) {
     return { isValid: false, message: "Please select a valid day." }
   }
-  // Validate time slot format
-  const timeRe = /^\s*\d{1,2}:\d{2}\s*(AM|PM)\s*-\s*\d{1,2}:\d{2}\s*(AM|PM)\s*$/i
-  if (!timeRe.test(String(data.timeSlot || ""))) {
-    return { isValid: false, message: "Time Slot must look like: 8:00 AM - 10:00 AM" }
+  // Validate time slot format unless any format is allowed via config
+  const _appCfg = (typeof window !== 'undefined' && window.appConfig) ? window.appConfig : {}
+  const allowAnyFmt = !!_appCfg.allowAnyTimeSlotFormat
+  if (!allowAnyFmt) {
+    const timeRe = /^\s*\d{1,2}:\d{2}\s*(AM|PM)\s*-\s*\d{1,2}:\d{2}\s*(AM|PM)\s*$/i
+    if (!timeRe.test(String(data.timeSlot || ""))) {
+      return { isValid: false, message: "Time Slot must look like: 8:00 AM - 10:00 AM" }
+    }
   }
   // Validate GPS coordinates
   if (!Number.isFinite(data.gpsLat) || !Number.isFinite(data.gpsLng)) {
