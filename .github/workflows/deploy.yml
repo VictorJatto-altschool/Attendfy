@@ -42,7 +42,9 @@ jobs:
           FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}
           FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
         run: |
-          if [ -n "${FIREBASE_API_KEY}" ] && [ -n "${FIREBASE_AUTH_DOMAIN}" ] && [ -n "${FIREBASE_PROJECT_ID}" ] && [ -n "${FIREBASE_STORAGE_BUCKET}" ] && [ -n "${FIREBASE_MESSAGING_SENDER_ID}" ] && [ -n "${FIREBASE_APP_ID}" ]; then
+          echo "Secrets present (no values shown): API_KEY=$([ -n "${FIREBASE_API_KEY}" ] && echo yes || echo no), AUTH_DOMAIN=$([ -n "${FIREBASE_AUTH_DOMAIN}" ] && echo yes || echo no), PROJECT_ID=$([ -n "${FIREBASE_PROJECT_ID}" ] && echo yes || echo no), APP_ID=$([ -n "${FIREBASE_APP_ID}" ] && echo yes || echo no), STORAGE_BUCKET=$([ -n "${FIREBASE_STORAGE_BUCKET}" ] && echo yes || echo no), MSG_SENDER=$([ -n "${FIREBASE_MESSAGING_SENDER_ID}" ] && echo yes || echo no)"
+          # Minimal required for Firebase App/Auth/Firestore: API_KEY, AUTH_DOMAIN, PROJECT_ID, APP_ID
+          if [ -n "${FIREBASE_API_KEY}" ] && [ -n "${FIREBASE_AUTH_DOMAIN}" ] && [ -n "${FIREBASE_PROJECT_ID}" ] && [ -n "${FIREBASE_APP_ID}" ]; then
             cat > config.js << EOF
             window.firebaseConfig = {
               enabled: true,
@@ -62,6 +64,13 @@ jobs:
             };
             EOF
           fi
+
+      - name: Cache-bust config.js reference
+        if: always()
+        shell: bash
+        run: |
+          # Replace any existing config.js script tag with a versioned one to avoid CDN/browser cache issues
+          sed -i -E 's|<script src="config\.js[^"]*"></script>|<script src="config.js?v=${{ github.run_number }}"></script>|g' index.html || true
 
       - name: Sanity check config.js
         shell: bash
