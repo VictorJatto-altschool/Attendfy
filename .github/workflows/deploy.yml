@@ -8,8 +8,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -23,9 +21,8 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-  steps:
+    steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
@@ -71,12 +68,13 @@ jobs:
         run: |
           test -f config.js || { echo "config.js missing"; exit 1; }
           grep -q "window.firebaseConfig" config.js || { echo "config.js malformed"; echo "---"; cat config.js; exit 1; }
+          test -f index.html || { echo "index.html missing at repo root"; ls -la; exit 1; }
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./
-          name: github-pages
+          if-no-files-found: error
 
       - name: Deploy to GitHub Pages
         id: deployment
