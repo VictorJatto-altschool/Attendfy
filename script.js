@@ -14,11 +14,13 @@ let currentRepEmail = null
 let repScope = null
 
 // Initialize the application
+// App entrypoint: boot the app and start the preloader lifecycle when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
   initializeApp()
   initPreloaderLifecycle()
 })
 
+// Bootstraps the app: cloud init, GPS, load UI/data, set today, wire events, mark preloader ready
 function initializeApp() {
   try {
   // Initialize optional cloud sync and load remote data if enabled
@@ -59,6 +61,7 @@ function initializeApp() {
 }
 
 // ---------- Preloader lifecycle ----------
+// Shows a short loading screen with rotating tips; hides when app is ready or after a safety timeout
 function initPreloaderLifecycle() {
   const preload = document.getElementById("preloader")
   if (!preload) return
@@ -99,6 +102,7 @@ function initPreloaderLifecycle() {
   }, 5000)
 }
 
+// Fades out the preloader and removes it from the DOM after transition
 function safeHidePreloader() {
   const preload = document.getElementById("preloader")
   if (!preload) return
@@ -108,11 +112,13 @@ function safeHidePreloader() {
 }
 
 // ---------- Student profile lock (anti-cheat) ----------
+// Returns today's date in YYYY-MM-DD (used to bind a device per day)
 function todayKey() {
   const d = new Date()
   return d.toISOString().slice(0, 10)
 }
 
+// Loads the device-bound student for today; expires previous day bindings
 function loadStudentProfile() {
   try {
     const raw = localStorage.getItem("studentProfile")
@@ -127,18 +133,21 @@ function loadStudentProfile() {
   }
 }
 
+// Binds this device to a student's matric/name for today and updates the UI lock state
 function saveStudentProfile(matriculation, studentName) {
   studentProfile = { matriculation, studentName, date: todayKey() }
   localStorage.setItem("studentProfile", JSON.stringify(studentProfile))
   applyStudentProfileLockUI()
 }
 
+// Clears the device binding and unlocks the inputs
 function clearStudentProfile() {
   localStorage.removeItem("studentProfile")
   studentProfile = null
   applyStudentProfileLockUI()
 }
 
+// Locks/unlocks name and matric inputs depending on the current device binding
 function applyStudentProfileLockUI() {
   const nameInput = document.getElementById("student-name")
   const matricInput = document.getElementById("matriculation")
@@ -174,6 +183,7 @@ function applyStudentProfileLockUI() {
 }
 
 // ------ Cloud Sync (Optional Firebase Firestore) ------
+// Initializes Firebase (if enabled via config.js), enables offline persistence, sets Firestore handle
 async function initCloud() {
   try {
     const cfg = window.firebaseConfig || { enabled: false }
@@ -206,6 +216,7 @@ async function initCloud() {
   }
 }
 
+// Loads timetable/attendance/PINs from Firestore; merges attendance with local
 async function loadFromCloudIfAny() {
   if (!db) return
   try {
@@ -255,6 +266,7 @@ async function loadFromCloudIfAny() {
   }
 }
 
+// Subscribes to Firestore changes to keep local storage and UI in sync
 function subscribeCloud() {
   if (!db) return
   try {
@@ -287,6 +299,7 @@ function subscribeCloud() {
 }
 
 // Centralized cloud write helpers
+// Writes the current timetable array to Firestore (idempotent)
 function syncTimetableToCloud() {
   if (!db) return
   try {
@@ -294,6 +307,7 @@ function syncTimetableToCloud() {
   } catch (_) {}
 }
 
+// Writes the current attendance array to Firestore (idempotent)
 function syncAttendanceToCloud() {
   if (!db) return
   try {
@@ -302,6 +316,7 @@ function syncAttendanceToCloud() {
 }
 
 // Network status handling for polished UX and manual fallback
+// Shows offline/online banners; when online, best-effort syncs pending local changes
 function initNetworkStatus() {
   const banner = document.getElementById("network-status")
   const manualBtn = document.getElementById("manual-btn")
@@ -338,6 +353,7 @@ function initNetworkStatus() {
   window.addEventListener("online", setOnlineUI)
 }
 
+// Wires form submissions, filters, GPS buttons, rep login/scope, and summary reset behavior
 function setupEventListeners() {
   // Student check-in form
   const checkinForm = document.getElementById("checkin-form")
@@ -408,6 +424,7 @@ function setupEventListeners() {
 }
 
 // Wire up nav buttons using class and data-section (no inline handlers)
+// Delegated click handling for main nav; switches visible section and active button
 function setupNavHandlers() {
   const nav = document.querySelector('.main-nav')
   if (!nav) return
@@ -421,6 +438,7 @@ function setupNavHandlers() {
 }
 
 // Navigation functions
+// Shows a section by id and updates the active navigation state
 function showSection(sectionId, ev) {
   if (!sectionId) return
   // Hide all sections with smooth transition
@@ -447,6 +465,7 @@ function showSection(sectionId, ev) {
 }
 
 // GPS Location functions
+// Acquires current GPS location; updates UI, fills rep GPS fields, and distance hints; suggests manual after timeouts
 function getCurrentLocation() {
   const statusDiv = document.getElementById("gps-status")
   const locationDetails = document.getElementById("location-details")
@@ -513,6 +532,7 @@ function getCurrentLocation() {
   )
 }
 
+// Renders GPS status visuals (loading/success/error) and messages
 function updateGPSStatus(statusDiv, message, type) {
   if (!statusDiv) return
 
@@ -531,6 +551,7 @@ function updateGPSStatus(statusDiv, message, type) {
   }
 }
 
+// Human-readable geolocation error messages for denied/unavailable/timeout/unknown
 function getGPSErrorMessage(error) {
   switch (error.code) {
     case error.PERMISSION_DENIED:
@@ -545,6 +566,7 @@ function getGPSErrorMessage(error) {
 }
 
 // Request user permission for geolocation, then try to acquire
+// Checks permission state and triggers location retrieval
 async function requestLocationPermission() {
   const statusDiv = document.getElementById("gps-status")
   try {
@@ -563,6 +585,7 @@ async function requestLocationPermission() {
 }
 
 // Retry with a gentle exponential backoff based on failures
+// Shows countdown and retries GPS acquisition with growing delay
 function retryGetLocation() {
   const statusDiv = document.getElementById("gps-status")
   const attempt = Math.min(gpsFailureCount + 1, 4)
@@ -573,6 +596,7 @@ function retryGetLocation() {
   }, backoffMs)
 }
 
+// Shows lat/lng/accuracy and reveals the location details panel
 function showLocationDetails(locationDetails) {
   if (!currentLocation || !locationDetails) return
 
@@ -583,6 +607,7 @@ function showLocationDetails(locationDetails) {
   locationDetails.classList.remove("hidden")
 }
 
+// Autofills the rep GPS inputs with current coordinates and shows accuracy quality
 function autoFillGPSCoordinates() {
   if (!currentLocation) return
 
@@ -603,6 +628,7 @@ function autoFillGPSCoordinates() {
   }
 }
 
+// On course change, shows distance/status/time-window and toggles the check-in button
 function updateCourseSelectionWithDistance() {
   const courseSelect = document.getElementById("course-select")
   if (!courseSelect || !currentLocation) return
@@ -649,6 +675,7 @@ function updateCourseSelectionWithDistance() {
 }
 
 // Calculate distance between two GPS coordinates
+// Haversine distance in meters between two lat/lng points
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371e3 // Earth's radius in meters
   const φ1 = (lat1 * Math.PI) / 180
@@ -663,6 +690,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 // Student check-in functions
+// Populates student course dropdown and summary course filter from current timetable
 function loadTimetableOptions() {
   const courseSelect = document.getElementById("course-select")
   const summaryCourse = document.getElementById("summary-course")
@@ -693,6 +721,7 @@ function loadTimetableOptions() {
   }
 }
 
+// Handles student check-in submit: validate → process → show message → reset
 function handleStudentCheckin(e) {
   e.preventDefault()
 
@@ -728,6 +757,7 @@ function handleStudentCheckin(e) {
   }, 1000)
 }
 
+// Extracts and trims student check-in form values
 function getCheckinFormData() {
   return {
     studentName: document.getElementById("student-name").value.trim(),
@@ -736,6 +766,7 @@ function getCheckinFormData() {
   }
 }
 
+// Validates required fields, matric format, GPS presence, and device lock consistency
 function validateCheckinData(data) {
   if (!data.studentName || !data.matriculation || !data.courseCode) {
     return { isValid: false, message: "Please fill in all required fields." }
@@ -759,6 +790,7 @@ function validateCheckinData(data) {
   return { isValid: true }
 }
 
+// Enforces day/time window and ≤100m distance, prevents duplicates, records attendance, binds device, syncs
 function processAttendance(formData) {
   // Find course in timetable
   const courseInfo = timetableData.find((item) => item.courseCode === formData.courseCode)
@@ -805,13 +837,26 @@ function processAttendance(formData) {
   // Cloud sync (optional)
   syncAttendanceToCloud()
 
+  // Build polished success message with GPS and Network quality chips
+  const accVal = currentLocation && Number.isFinite(currentLocation.accuracy)
+    ? Math.round(currentLocation.accuracy)
+    : null
+  const gpsQ = classifyGPSAccuracy(accVal)
+  const netQ = getNetworkQuality()
+  const gpsChip = buildStatusChip(`GPS: ${accVal != null ? `±${accVal}m` : 'N/A'} (${gpsQ.label})`, gpsQ.color, gpsQ.icon)
+  const netLabel = netQ.detail ? `${netQ.detail} ${netQ.label}` : netQ.label
+  const netChip = buildStatusChip(`Network: ${netLabel}`, netQ.color, netQ.icon)
+
+  const chips = `<div class="status-chips">${gpsChip} ${netChip}</div>`
+
   return {
-    message: `<i class="bi bi-patch-check-fill" style="color: lightgreen;"></i> Attendance marked successfully! Distance from venue: ${Math.round(distance)}m`,
+    message: `<i class="bi bi-patch-check-fill" style="color: lightgreen;"></i> Attendance marked successfully! Distance from venue: ${Math.round(distance)}m ${chips}`,
     type: "success",
   }
 }
 
 // Time slot helper: supports formats like "8:00 AM - 10:00 AM"
+// True only when now is on the specified weekday and between the parsed start/end times
 function isWithinTimeSlot(timeSlot, day) {
   try {
     if (!timeSlot || !day) return true // fail-open if missing data
@@ -833,6 +878,7 @@ function isWithinTimeSlot(timeSlot, day) {
   }
 }
 
+// Parses an "h:mm AM/PM" label into a Date object for today
 function parseTimeToday(label) {
   if (!label) return null
   const now = new Date()
@@ -847,7 +893,37 @@ function parseTimeToday(label) {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, minutes, 0, 0)
 }
 
+// Classify GPS accuracy meters into Good/Moderate/Poor for UX display
+function classifyGPSAccuracy(accMeters) {
+  if (!Number.isFinite(accMeters)) return { label: 'Unknown', color: '#9e9e9e', icon: 'bi-geo-alt' }
+  if (accMeters <= 30) return { label: 'Good', color: '#2e7d32', icon: 'bi-geo-alt' }
+  if (accMeters <= 70) return { label: 'Moderate', color: '#ef6c00', icon: 'bi-geo-alt' }
+  return { label: 'Poor', color: '#c62828', icon: 'bi-geo-alt' }
+}
+
+// Report network quality using the Network Information API when available; fallback to Online/Offline
+function getNetworkQuality() {
+  if (!navigator.onLine) return { label: 'Offline', detail: '', color: '#ef6c00', icon: 'bi-wifi-off' }
+  const c = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+  if (c && c.effectiveType) {
+    const et = String(c.effectiveType).toLowerCase()
+    if (et === '4g') return { label: 'Online', detail: '4g', color: '#2e7d32', icon: 'bi-rss-fill' }
+    if (et === '3g') return { label: 'Moderate', detail: '3g', color: '#ef6c00', icon: 'bi-rss-fill' }
+    return { label: 'Poor', detail: et, color: '#c62828', icon: 'bi-rss-fill' }
+  }
+  return { label: 'Online', detail: '', color: '#2e7d32', icon: 'bi-rss-fill' }
+}
+
+// Small rounded pill element with icon and themed border/color
+function buildStatusChip(text, color, iconClass) {
+  const safeText = escapeHtml(String(text))
+  const safeIcon = escapeHtml(String(iconClass))
+  const safeColor = escapeHtml(String(color))
+  return `<span class="status-chip" style="border-color:${safeColor}; color:${safeColor}"><i class="bi ${safeIcon}"></i> ${safeText}</span>`
+}
+
 // Manual attendance fallback (offline / GPS issues)
+// Records manual/offline attendance with same validations (except GPS distance), then syncs later
 function handleManualAttendance() {
   // Always show a popup regardless of form state
   showAlert("Write manual attendance")
@@ -914,6 +990,7 @@ function handleManualAttendance() {
   document.getElementById("checkin-form").reset()
 }
 
+// Returns true if the same matric/course already has a record today
 function isDuplicateAttendance(matriculation, courseCode) {
   const today = new Date().toDateString()
   return attendanceData.some(
@@ -924,6 +1001,7 @@ function isDuplicateAttendance(matriculation, courseCode) {
   )
 }
 
+// Builds a normalized attendance record with GPS location and rounded distance
 function createAttendanceRecord(formData, courseInfo, distance) {
   return {
     studentName: formData.studentName,
@@ -944,6 +1022,7 @@ function createAttendanceRecord(formData, courseInfo, distance) {
 }
 
 // Course Rep functions
+// Verifies rep email + PIN, saves session, loads scope, nudges password manager, and shows dashboard
 function verifyRepAccess() {
   const email = document.getElementById("rep-email").value.trim().toLowerCase()
   const pin = document.getElementById("rep-pin")?.value?.trim()
@@ -1013,6 +1092,7 @@ function verifyRepAccess() {
 }
 
 // Ask the browser (Chrome/Google Password Manager) to save the rep's credentials
+// Uses Credential Management API to prompt credential storage when supported
 function attemptSaveRepCredentials(email, pin) {
   try {
     if (!('credentials' in navigator)) return
@@ -1032,6 +1112,7 @@ function attemptSaveRepCredentials(email, pin) {
 }
 
 // Submit a hidden form (username/password) to a hidden iframe to nudge browser password managers
+// Heuristic fallback to trigger password manager save flows
 function triggerPasswordManagerHeuristic(email, pin) {
   try {
     const sinkName = 'auth_sink'
@@ -1063,6 +1144,7 @@ function triggerPasswordManagerHeuristic(email, pin) {
   }
 }
 
+// Clears rep session and scope and resets UI lock state
 function repSignOut() {
   localStorage.removeItem("repSession")
   currentRepEmail = null
@@ -1079,6 +1161,7 @@ function repSignOut() {
   showAlert("Signed out.")
 }
 
+// Adds a one-click button (for reps) to unlock the device-bound student for the day
 function ensureUnlockButton() {
   const parent = document.getElementById("course-rep") || document.body
   let btn = document.getElementById("unlock-device-btn")
@@ -1096,6 +1179,7 @@ function ensureUnlockButton() {
   }
 }
 
+// Creates a timetable entry (enforcing rep scope), validates and persists, syncs, and refreshes UI
 function handleTimetableSubmission(e) {
   e.preventDefault()
 
@@ -1135,6 +1219,7 @@ function handleTimetableSubmission(e) {
 }
 
 // -------- Course Rep: Manage Timetable (edit existing entries) --------
+// Renders an editable list of timetable items filtered to the rep scope and wires actions
 function renderRepTimetableList() {
   const container = document.getElementById("rep-timetable-list")
   if (!container) return
@@ -1249,6 +1334,7 @@ function renderRepTimetableList() {
   }
 }
 
+// Finds the index of a timetable card by stable id or by visible course/day/time fallback
 function indexOfTimetableCard(card) {
   // Prefer stable ID matching
   const dataId = card.getAttribute("data-id")
@@ -1271,6 +1357,7 @@ function indexOfTimetableCard(card) {
   return timetableData.findIndex((it) => String(it.courseCode).trim() === courseCode && it.day === viewDay && it.timeSlot === viewTime)
 }
 
+// Toggles a card into inline edit mode
 function enterEditMode(card) {
   card.querySelector('[data-action="edit"]').classList.add("hidden")
   const delBtn = card.querySelector('[data-action="delete"]')
@@ -1280,6 +1367,7 @@ function enterEditMode(card) {
   card.querySelector(".edit-fields").classList.remove("hidden")
 }
 
+// Exits inline edit mode without saving
 function exitEditMode(card) {
   card.querySelector('[data-action="edit"]').classList.remove("hidden")
   const delBtn = card.querySelector('[data-action="delete"]')
@@ -1289,6 +1377,7 @@ function exitEditMode(card) {
   card.querySelector(".edit-fields").classList.add("hidden")
 }
 
+// Validates and saves inline edits (enforces rep scope), persists, syncs, and refreshes
 function saveEdit(card, idx) {
   const daySel = card.querySelector(".edit-day")
   const timeInput = card.querySelector(".edit-time")
@@ -1344,6 +1433,7 @@ function saveEdit(card, idx) {
 }
 
 // Ensure all timetable entries have an 'id' field for stable operations
+// Migrates legacy entries to have stable ids, persists, then syncs
 function ensureTimetableIds() {
   let changed = false
   for (const it of timetableData) {
@@ -1362,6 +1452,7 @@ function ensureTimetableIds() {
   }
 }
 
+// Confirms and deletes a timetable entry (enforces rep scope), persists, syncs, refreshes
 function deleteTimetableEntry(idx) {
   try {
     const item = timetableData[idx]
@@ -1392,6 +1483,7 @@ function deleteTimetableEntry(idx) {
 }
 
 // Clear all timetable entries both locally and in Firebase
+// Global destructive clear of timetable (local + cloud) with confirmation and UI refresh
 function clearAllTimetables() {
   try {
     // Only show to authenticated reps via UI, but protect anyway
@@ -1424,6 +1516,7 @@ function clearAllTimetables() {
   }
 }
 
+// Reads the create-timetable form fields and normalizes types
 function getTimetableFormData() {
   return {
     faculty: document.getElementById("faculty").value,
@@ -1438,6 +1531,7 @@ function getTimetableFormData() {
   }
 }
 
+// Validates required fields, allowed day, time format, and numeric GPS
 function validateTimetableData(data) {
   for (const key in data) {
     if (data[key] === "" || (typeof data[key] === "number" && isNaN(data[key]))) {
@@ -1464,6 +1558,7 @@ function validateTimetableData(data) {
   return { isValid: true }
 }
 
+// Generates the daily summary for selected date (and optional course), updates buttons and scrolls into view
 function generateSummary() {
   const selectedDate = document.getElementById("summary-date").value
   if (!selectedDate) {
@@ -1500,6 +1595,7 @@ function generateSummary() {
   summaryDiv.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 
+// Groups attendance by course and returns printable HTML (with optional course label)
 function generateSummaryHTML(dayAttendance, dateObj, selectedCourse) {
   // Group by course
   const groupedByCourse = dayAttendance.reduce((acc, record) => {
@@ -1548,6 +1644,7 @@ function generateSummaryHTML(dayAttendance, dateObj, selectedCourse) {
   return summaryHTML
 }
 
+// Downloads the current summary as a standalone HTML file (course/date in filename)
 function downloadSummary() {
   const summaryDiv = document.getElementById("attendance-summary")
   if (!summaryDiv.innerHTML.trim()) {
@@ -1590,6 +1687,7 @@ function downloadSummary() {
   URL.revokeObjectURL(url)
 }
 
+// Prints the current page using print styles; guards when summary is empty
 function printSummary() {
   const summaryDiv = document.getElementById("attendance-summary")
   if (!summaryDiv.innerHTML.trim()) {
@@ -1601,6 +1699,7 @@ function printSummary() {
 }
 
 // Timetable display functions
+// Renders the weekly timetable (read-only) or a no-data message; keeps manage list in sync
 function displayTimetable() {
   const displayDiv = document.getElementById("timetable-display")
 
@@ -1616,6 +1715,7 @@ function displayTimetable() {
   renderRepTimetableList()
 }
 
+// Builds grouped-by-day timetable cards including GPS coordinates
 function generateTimetableHTML() {
   // Group by day
   const groupedByDay = timetableData.reduce((acc, item) => {
@@ -1663,6 +1763,7 @@ function generateTimetableHTML() {
   return timetableHTML
 }
 
+// Filters timetable by faculty/department/level; shows counts and temporarily renders subset
 function filterTimetable() {
   const faculty = document.getElementById("filter-faculty").value
   const department = document.getElementById("filter-department").value.toLowerCase().trim()
@@ -1701,6 +1802,7 @@ function filterTimetable() {
   timetableData = originalData
 }
 
+// Clears filters and shows the full timetable again
 function clearFilters() {
   document.getElementById("filter-faculty").value = ""
   document.getElementById("filter-department").value = ""
@@ -1710,6 +1812,7 @@ function clearFilters() {
 }
 
 // Utility functions
+// Renders a dismissible alert into a container and auto-clears after a few seconds
 function showMessage(container, message, type) {
   if (!container) return
 
@@ -1726,20 +1829,24 @@ function showMessage(container, message, type) {
   }, 5000)
 }
 
+// Simple wrapper for blocking alert dialog
 function showAlert(message) {
   alert(message)
 }
 
+// Clears loading state and re-enables a button
 function resetSubmitButton(button) {
   button.classList.remove("loading")
   button.disabled = false
 }
 
 // ---------- Rep Scope helpers ----------
+// Derives the localStorage key used to store a rep's scope
 function getRepScopeKey(email) {
   return `repScope:${email}`
 }
 
+// Loads rep scope for the current session email (if any); returns null when absent
 function loadRepScope() {
   try {
     if (!currentRepEmail) {
@@ -1759,6 +1866,7 @@ function loadRepScope() {
   }
 }
 
+// Validates and saves the rep scope, applies UI locks, rerenders lists
 function handleSaveRepScope() {
   const fac = document.getElementById("rep-faculty")?.value
   const dep = document.getElementById("rep-department")?.value?.trim()
@@ -1778,6 +1886,7 @@ function handleSaveRepScope() {
   showAlert("Rep Scope saved.")
 }
 
+// Applies the saved scope to prefill/lock forms and shows a descriptive hint
 function applyRepScopeUI() {
   // Prefill Rep Scope form
   const facSel = document.getElementById("rep-faculty")
@@ -1809,6 +1918,7 @@ function applyRepScopeUI() {
   }
 }
 
+// Returns true when a timetable item matches the current rep's faculty/department/level
 function matchRepScope(item) {
   if (!repScope) return true
   const sameFaculty = String(item.faculty) === String(repScope.faculty)
@@ -1821,6 +1931,7 @@ function matchRepScope(item) {
 setInterval(getCurrentLocation, 300000)
 
 // Prevent form submission on Enter key for better UX
+// Prevents accidental Enter submissions in inputs (except textareas/submit buttons)
 document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target.tagName !== "TEXTAREA" && e.target.type !== "submit") {
     // Only prevent if not in a form or if it's an input that shouldn't submit
@@ -1832,6 +1943,7 @@ document.addEventListener("keydown", (e) => {
 })
 
 // Basic HTML escape to protect dynamic content
+// Escapes special characters to prevent HTML injection in dynamic strings
 function escapeHtml(s) {
   return String(s)
     .replace(/&/g, '&amp;')
